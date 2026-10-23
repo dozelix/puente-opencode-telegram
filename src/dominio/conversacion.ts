@@ -54,9 +54,23 @@ export class Conversacion {
         return ["", [], `no pude leer la respuesta: ${mensaje_de(e)}`];
       }
 
+      // Corte del turno: el mensaje del usuario que acaba de entrar. Así no
+      // se cuela texto ni el idle de un turno anterior (p. ej. si el puente
+      // se cortó a mitad de turno y el estado quedó atrás).
+      let corte = desde_ms;
       for (const m of mensajes) {
         const creado = m.time?.created ?? 0;
-        if (desde_ms && creado <= desde_ms) continue;
+        if (m.type === "user" && creado > corte) corte = creado;
+      }
+      if (corte <= desde_ms) {
+        // el prompt todavía no aparece en la sesión: esperar sin evaluar nada
+        await dormir(3000);
+        continue;
+      }
+
+      for (const m of mensajes) {
+        const creado = m.time?.created ?? 0;
+        if (creado < corte) continue;
         if (m.type === "user") continue;
         if (m.type === "idle") {
           fin = { outcome: m.outcome, error: m.error?.message ?? "" };
