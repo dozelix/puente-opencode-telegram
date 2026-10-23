@@ -1,0 +1,35 @@
+# Unidad systemd de usuario para el puente Telegram ↔ OpenCode (Bun).
+#
+# Cómo usarla (sin sudo):
+#   1) copiar este archivo a ~/.config/systemd/user/puente.service
+#   2) systemctl --user daemon-reload
+#   3) systemctl --user enable --now puente.service
+#
+# Lo que el puente necesita (token del bot, TELEGRAM_CHAT_ID, modelos de
+# audio/imagen, whisper) lo lee él solo de ~/.config/opencode/telegram.env;
+# la contraseña del servidor de OpenCode sale del registro del servicio
+# (~/.local/state/opencode/service.json). Por eso este unit no lleva
+# Environment= con secretos ni datos personales.
+
+[Unit]
+Description=Puente Telegram ↔ OpenCode (Bun)
+After=network-online.target
+
+[Service]
+Type=simple
+# %h = el home del usuario: el unit no depende de dónde viva el repo ni de
+# qué usuario instala. Si tu bun o tu repo no están ahí, ajusta la ruta.
+# El arranque es "bun run src/entrada/puente.ts" desde la raíz del repo.
+ExecStart=%h/.bun/bin/bun run %h/Proyectos/puente-opencode-telegram/src/entrada/puente.ts
+
+# si revienta o lo matan: se levanta solo (igual que el puente Python)
+Restart=always
+RestartSec=10
+
+# Si el puente se cuelga (vivo pero mudo: el bug clásico de un hilo muerto
+# en silencio), systemd lo mata y lo reinicia. El proceso responde con
+# WATCHDOG=1 cada ~150 s.
+WatchdogSec=300
+
+[Install]
+WantedBy=default.target

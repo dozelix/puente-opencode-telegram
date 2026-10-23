@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "puente-opencode-telegram",
+  "version": "0.1.0",
+  "description": "Puente Telegram ↔ OpenCode con @opencode/client (Bun + TypeScript, sin secretos)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "arrancar": "bun run src/entrada/puente.ts",
+    "autoprueba": "bun run src/autoprueba.ts",
+    "tipo": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode/client": "^2.1.3"
+  },
+  "devDependencies": {
+    "bun-types": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
+}
