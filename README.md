@@ -1,4 +1,4 @@
-# Puente Telegram ↔ OpenCode
+# OpenCode Telegram Bridge
 
 <div align="center">
 
@@ -13,21 +13,23 @@
 
 ---
 
-## 🚀 What is it?
+## 🚀 Overview
 
-**Puente Telegram ↔ OpenCode** is a production-grade bridge that connects Telegram directly to your local or remote **OpenCode** server instance (`opencode serve`). It allows you to chat with your AI coding agents, manage workspaces/projects, send images and voice notes, review permissions (`/si`, `/no`), and receive file attachments directly on your mobile device without exposing raw credentials or relying on bloated runtimes.
+**OpenCode Telegram Bridge** is a production-grade integration layer connecting Telegram directly to your local or remote **OpenCode** server instance (`opencode serve`). It enables you to interact with AI coding assistants, manage project workspaces, handle image and voice attachments, approve or reject tool permissions (`/yes`, `/no`), and receive file outputs directly on your mobile device.
+
+Designed with a strict Single Responsibility Principle (SRP) architecture, it ensures fail-closed security, robust error recovery, and zero hardcoded secrets.
 
 ---
 
-## 🛠️ How it Works
+## 🛠️ Architecture & How It Works
 
-The architecture follows strict **Single Responsibility Principle (SRP)** layers, ensuring high reliability, fail-closed security, and thread-safe operations:
+The codebase is organized into decoupled domain and adapter layers:
 
-1. **Telegram Adapter (`src/adaptadores/telegram.ts`)**: Manages `getUpdates` polling, MarkdownV2 formatting & linting, inline buttons, file downloads, and chat typing indicators.
-2. **OpenCode Adapter (`src/adaptadores/opencode.ts`)**: Interfaces with the OpenCode API (`@opencode/client`) to create sessions, stream prompts, handle permissions, and manage working directories.
-3. **Live Catalog Router (`src/aplicacion/router.ts`)**: Queries the live OpenCode model catalog (`c.model.list()`) rather than relying on hardcoded lists. It dynamically selects the best zero-cost or fallback model depending on whether the incoming message contains text, an image, or a voice note.
-4. **Attachments & Audio (`src/dominio/adjuntos.ts`)**: Prepares incoming photos and voice notes. If model-based audio transcription fails, it falls back gracefully to local `whisper.cpp`.
-5. **Chat Queue & Watchdog (`src/entrada/puente.ts`)**: Enqueues turns per chat to prevent race conditions (such as project switching mid-turn), and pings systemd via `WATCHDOG=1` to auto-restart the bridge if it becomes unresponsive.
+1. **Telegram Adapter (`src/adaptadores/telegram.ts`)**: Handles `getUpdates` polling, MarkdownV2 formatting and linting, inline keyboards, file transfers, and chat typing indicators.
+2. **OpenCode Adapter (`src/adaptadores/opencode.ts`)**: Interfaces with the OpenCode API (`@opencode/client`) for session lifecycle management, prompt execution, permission handling, and workspace directory resolution.
+3. **Live Catalog Router (`src/aplicacion/router.ts`)**: Dynamically queries the active OpenCode model catalog (`c.model.list()`) rather than relying on static matrices. It selects the best available zero-cost or fallback model based on message modality (text, image, or audio).
+4. **Attachments & Audio (`src/dominio/adjuntos.ts`)**: Prepares incoming photos and voice messages. If model-based audio transcription is unavailable, it gracefully falls back to local `whisper.cpp`.
+5. **Chat Queue & Watchdog (`src/entrada/puente.ts`)**: Enqueues turns per chat ID to prevent race conditions (such as workspace switching mid-turn) and integrates with systemd via `WATCHDOG=1` for reliable auto-restarts.
 
 ---
 
@@ -35,51 +37,49 @@ The architecture follows strict **Single Responsibility Principle (SRP)** layers
 
 > *Note: Place your screenshot files inside `docs/img/` and update the references below.*
 
-### 1. Main Chat Interface & Project Selector
+### 1. Interactive Project Selector
 ```text
 ┌──────────────────────────────────────────┐
-│  Saulo (Telegram Bot)                    │
+│  OpenCode Agent (Telegram Bot)           │
 ├──────────────────────────────────────────┤
-│ 👤 User: /proyectos                      │
+│ 👤 User: /projects                       │
 │ 🤖 Bot:                                  │
 │ 🗂 Projects (3)                           │
-│ • huachi-sport                           │
-│ • puente-opencode-telegram               │
-│ • IOT_E2                                 │
+│ • core-service                           │
+│ • web-dashboard                          │
+│ • ml-pipeline                            │
 │                                          │
-│ Now: /home/dozelix — tap one to work.    │
+│ Now: /home/user — tap one to work in it. │
 └──────────────────────────────────────────┘
 ```
-*Interactive inline buttons let you instantly switch projects, inspect sessions, or start fresh.*
 
-### 2. Live Model Routing & Voice/Image Handling
+### 2. Multi-Modal Routing & Voice Support
 ```text
 ┌──────────────────────────────────────────┐
 │ 🎤 [Voice Note received]                 │
 │ ⚙️ Router: transcribing audio via        │
 │    console-google/gemini-3.8-flash       │
-│ 🤖 Agent: "Analicé la nota de voz..."    │
+│ 🤖 Agent: "Analyzed your voice request..."│
 └──────────────────────────────────────────┘
 ```
-*Automatic multi-model switching ensures voice notes and images are routed correctly using live capabilities.*
 
 ---
 
 ## ⚙️ Configuration & Installation
 
 ### 1. Environment Variables
-Copy the template to your configuration folder:
+Copy the template configuration to your environment directory:
 ```bash
 cp plantillas/telegram.env.example ~/.config/opencode/telegram.env
 ```
-Fill in your credentials:
+Provide your Telegram credentials:
 ```env
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_ID=your_telegram_chat_id_here
 ```
 
-### 2. Systemd Service (Optional)
-To run the bridge continuously as a user service without root permissions:
+### 2. Systemd User Service (Optional)
+To run the bridge continuously as a background service:
 ```bash
 cp plantillas/puente.service ~/.config/systemd/user/puente.service
 systemctl --user daemon-reload
@@ -90,13 +90,13 @@ systemctl --user enable --now puente.service
 
 ## 🧪 Testing & Validation
 
-Run the type checker and self-tests locally with Bun:
+Verify types and run self-tests against your active OpenCode server:
 ```bash
-# Check TypeScript types
-bun run tipo
+# Run TypeScript type check
+bun run typecheck
 
-# Run self-tests against the active server
-bun run autoprueba
+# Run integration self-tests
+bun run selftest
 ```
 
 ---
